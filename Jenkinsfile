@@ -5,7 +5,7 @@ pipeline {
     stage('init') {
       steps {
         lastChanges(
-          since: 'LAST_SUCCESSFUL_BUILD',
+          since: 'PREVIOUS_REVISION',
           format:'SIDE',
           matching: 'LINE'
         )
