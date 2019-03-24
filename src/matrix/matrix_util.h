@@ -88,6 +88,7 @@ namespace mxutils
     timeval operator-(timeval lhs, timeval rhs);
     std::ostream &operator<<(std::ostream &os, const timeval &t);
     std::string ToHex(const std::string &s, bool upper_case = false, size_t max_len = 0);
+    std::string get_most_local(std::vector<std::string> urls);
 
 /**
  * This is a predicate function, intended to return true if a particular
@@ -114,7 +115,7 @@ namespace mxutils
 
 /**
  * This helper will strip out whatever characters the predicate
- * 'strip_p' returns 'true' for (see above).
+ * 'is_non_numeric_p' returns 'true' for (see above).
  *
  * @param s: the string to be stripped
  *

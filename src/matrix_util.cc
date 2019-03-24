@@ -265,4 +265,58 @@ string ToHex(const string &s, bool upper_case, size_t max_len)
            << " }";
         return os;
     }
+
+/**
+ * Returns the URL with the most local transport type. That is, if an
+ * IPC and a TCP URL were provided it would choose the IPC URL from
+ * the vector of URLs. The transports in order of preference are:
+ * INPROC, IPC, TCP.
+ *
+ * @param urls: A vector of string, the URLs to choose from
+ *
+ * @return The chosen URL, or an empty string if none matched (which
+ * is an error).
+ *
+ */
+
+
+    string get_most_local(vector<string> urls)
+    {
+        string inproc{"inproc"};
+        string ipc{"ipc"};
+        string tcp{"tcp"};
+
+        auto predicate =
+            [](auto transport)
+            {
+                return [transport](auto x)
+                       {
+                           return x.find(transport) != string::npos;
+                       };
+            };
+
+        auto inproc_it = find_if(urls.begin(), urls.end(), predicate(inproc));
+
+        if (inproc_it != urls.end())
+        {
+            return *inproc_it;
+        }
+
+        auto ipc_iter = find_if(urls.begin(), urls.end(), predicate(ipc));
+
+        if (ipc_iter != urls.end())
+        {
+            return *ipc_iter;
+        }
+
+        auto tcp_iter = find_if(urls.begin(), urls.end(), predicate(tcp));
+
+        if (tcp_iter != urls.end())
+        {
+            return *tcp_iter;
+        }
+
+        return string();
+    }
+
 }
