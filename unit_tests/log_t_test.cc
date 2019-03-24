@@ -37,14 +37,13 @@ using namespace std;
 using namespace matrix;
 using namespace mxutils;
 
-ostream &operator << (ostream &o, log_t::Message const &m)
+ostream &operator << (ostream &o, LogMessage const &m)
 {
     o << "{"
       << "msg_time = " << Time::isoDateTime(m.msg_time)
-      << ", msg_level = " << m.msg_level
+      << ", msg_level = " << log_t::level_name(m.msg_level)
       << ", module = " << m.module
-      << ", pid = " << m.pid
-      << ", msg = " << m.msg << "}";
+      << ", msg = " << m.msg() << "}";
 
     return o;
 }
@@ -53,19 +52,19 @@ ostream &operator << (ostream &o, log_t::Message const &m)
 
 struct test_backend : public log_t::Backend
 {
-    void output(log_t::Message &m)
+    void output(LogMessage &m)
     {
         message = m;
     }
 
-    log_t::Message message;
+    LogMessage message;
 };
 
 
 void log_tTest::test_logger()
 {
     log_t logger("test_logger");
-    log_t::set_log_level(log_t::DEBUG_LEVEL);
+    log_t::set_log_level(Levels::DEBUG_LEVEL);
     std::shared_ptr<test_backend> backend(new test_backend());
     log_t::add_backend(backend);
     vector<string> vs{"foo", "bar", "baz", "quux"};
@@ -73,38 +72,37 @@ void log_tTest::test_logger()
 
     Time::Time_t ts = Time::getUTC();
     logger.debug(__PRETTY_FUNCTION__, "This is a DEBUG message;", "vector vs =", vs);
-    CPPUNIT_ASSERT(backend->message.pid == pid);
     CPPUNIT_ASSERT(backend->message.msg_time != 0);
     // Compare down to a second, still could fail once in a blue moon
     CPPUNIT_ASSERT(Time::isoDateTime(backend->message.msg_time).substr(0, 18)
                    == Time::isoDateTime(ts).substr(0, 18));
-    CPPUNIT_ASSERT(backend->message.msg_level == log_t::DEBUG_LEVEL);
+    CPPUNIT_ASSERT(backend->message.msg_level == Levels::DEBUG_LEVEL);
     CPPUNIT_ASSERT(backend->message.module == "test_logger");
-    CPPUNIT_ASSERT(backend->message.msg.find("[foo, bar, baz, quux]") != string::npos);
+    CPPUNIT_ASSERT(backend->message.msg().find("[foo, bar, baz, quux]") != string::npos);
 
 
     // Test the levels. We already tested debug above. Check the
     // string for a new message, because our simple backend gets
     // reused and the message is not cleared.
-    log_t::set_log_level(log_t::WARNING_LEVEL);
+    log_t::set_log_level(Levels::WARNING_LEVEL);
     logger.debug(__PRETTY_FUNCTION__, "New Debug Message");
-    CPPUNIT_ASSERT(backend->message.msg.find("New Debug") == string::npos);
+    CPPUNIT_ASSERT(backend->message.msg().find("New Debug") == string::npos);
     logger.info(__PRETTY_FUNCTION__, "New Info Message");
-    CPPUNIT_ASSERT(backend->message.msg.find("New Info") == string::npos);
+    CPPUNIT_ASSERT(backend->message.msg().find("New Info") == string::npos);
     logger.warning(__PRETTY_FUNCTION__, "New Warning Message");
-    CPPUNIT_ASSERT(backend->message.msg.find("New Warning") != string::npos);
+    CPPUNIT_ASSERT(backend->message.msg().find("New Warning") != string::npos);
     logger.error(__PRETTY_FUNCTION__, "New Error Message");
-    CPPUNIT_ASSERT(backend->message.msg.find("New Error") != string::npos);
+    CPPUNIT_ASSERT(backend->message.msg().find("New Error") != string::npos);
     logger.fatal(__PRETTY_FUNCTION__, "New Fatal Message");
-    CPPUNIT_ASSERT(backend->message.msg.find("New Fatal") != string::npos);
+    CPPUNIT_ASSERT(backend->message.msg().find("New Fatal") != string::npos);
 }
 
 void log_tTest::test_ostream_backend()
 {
     log_t logger("test_logger");
-    log_t::set_log_level(log_t::DEBUG_LEVEL);
+    log_t::set_log_level(Levels::DEBUG_LEVEL);
     stringstream s;
-    std::shared_ptr<log_t::Backend> ostream_be(new log_t::ostreamBackend(s));
+    std::shared_ptr<log_t::Backend> ostream_be(new ostreamBackend(s));
     log_t::clear_backends();
     log_t::add_backend(ostream_be);
 
@@ -124,9 +122,9 @@ void log_tTest::test_ostream_backend()
 void log_tTest::test_ostream_color_backend()
 {
     log_t logger("test_logger");
-    log_t::set_log_level(log_t::DEBUG_LEVEL);
+    log_t::set_log_level(Levels::DEBUG_LEVEL);
     stringstream s;
-    std::shared_ptr<log_t::Backend> ostream_be(new log_t::ostreamBackendColor(s));
+    std::shared_ptr<log_t::Backend> ostream_be(new ostreamBackendColor(s));
     log_t::clear_backends();
     log_t::add_backend(ostream_be);
 

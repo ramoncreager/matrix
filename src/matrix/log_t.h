@@ -51,7 +51,17 @@ namespace matrix
 
     struct LogMessage
     {
-        std::string msg() {return s.str();}
+        std::string msg() const {return s.str();}
+
+        LogMessage &operator=(const LogMessage &m)
+        {
+            msg_time = m.msg_time;
+            msg_level = m.msg_level;
+            module = m.module;
+            s.clear();
+            s << m.s.str();
+            return *this;
+        }
 
         Time::Time_t msg_time;
         Levels msg_level;
@@ -139,6 +149,7 @@ namespace matrix
 
         static void set_log_level(Levels l = Levels::INFO_LEVEL);
         static void add_backend(std::shared_ptr<Backend>);
+        static void clear_backends();
         static void set_default_backend();
         static std::string level_name(Levels l);
 

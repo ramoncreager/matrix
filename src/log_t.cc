@@ -128,6 +128,11 @@ namespace matrix
         backends.push_front(be);
     }
 
+    void log_t::clear_backends()
+    {
+        backends.clear();
+    }
+
     string log_t::level_name(Levels l)
     {
         return _level_name[l];
