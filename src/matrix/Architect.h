@@ -131,7 +131,8 @@ namespace matrix
         /// Add a component factory constructor for later use in creating
         /// the component instance. The factory signature should be
         /// `       Component * Classname::factory(string type, ComponentFactory);`
-        static void add_component_factory(std::string name, matrix::Component::ComponentFactory func);
+        static void add_component_factory(std::string name,
+                matrix::Component::ComponentFactory func);
 
         /// This reads the connections section of the keymaster database/config file
         /// and for each mode listed, creates a set of instance names of the
@@ -151,6 +152,10 @@ namespace matrix
 
         /// check that all component states are in the state specified.
         bool check_all_in_state(std::string state);
+
+        /// returns a list of active components not in the state
+        /// specified.
+        std::list<std::string> components_not_in_state(std::string state);
 
         /// wait until component states are all in the state specified.
         bool wait_all_in_state(std::string statename, int timeout);

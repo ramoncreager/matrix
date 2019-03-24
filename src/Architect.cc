@@ -231,6 +231,27 @@ namespace matrix
         return rtn == components.end();
     }
 
+    // Return a list of names of all active components not in the desired state
+    list<string> Architect::components_not_in_state(string statename)
+    {
+        ThreadLock<decltype(components)> l(components);
+        list<string> non_compliant;
+        l.lock();
+
+        for (auto c: components)
+        {
+            if (c.second.active)
+            {
+                if (c.second.state != statename)
+                {
+                    non_compliant.push_front(c.first);
+                }
+            }
+        }
+
+        return non_compliant;
+    }
+
 // Wait for components to reach a desired state with a timeout.
     bool Architect::wait_all_in_state(string statename, int usecs)
     {

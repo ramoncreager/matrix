@@ -228,7 +228,9 @@ KeymasterServer::KmImpl::~KmImpl()
 
     terminate();
 
-    i = find_if(_publish_service_urls.begin(), _publish_service_urls.end(), substring_p("ipc"));
+    i = find_if(_publish_service_urls.begin(),
+                _publish_service_urls.end(),
+                substring_p("ipc"));
 
     if (i != _publish_service_urls.end())
     {
@@ -247,13 +249,15 @@ void KeymasterServer::KmImpl::run()
     {
         if (_server_thread.start() != 0)
         {
-            throw(runtime_error(string("KeymasterServer: unable to start publishing thread")));
+            throw(runtime_error(
+                      string("KeymasterServer: unable to start publishing thread")));
         }
     }
 
     if (_server_thread_ready.wait(true, 1000000) != true)
     {
-        throw(runtime_error(string("KeymasterServer: timed out waiting for publishing thread")));
+        throw(runtime_error(
+                  string("KeymasterServer: timed out waiting for publishing thread")));
     }
 
     // Make sure this is run AFTER the _server_thread (publisher)
@@ -262,17 +266,24 @@ void KeymasterServer::KmImpl::run()
     // because the _root_node is not thread-safe.
     if (!_state_manager_thread.running())
     {
-        if (_state_manager_thread.start() != 0 || !_state_manager_thread_ready.wait(true, 1000000))
+        if (_state_manager_thread.start() != 0
+            || !_state_manager_thread_ready.wait(true, 1000000))
         {
-            throw(runtime_error(string("KeymasterServer: unable to start request thread")));
+            throw(runtime_error(
+                      string("KeymasterServer: unable to start request thread")));
         }
     }
 
     if (!_heartbeat_thread.running())
     {
+        cout << "Starting the heartbeat thread" << endl;
+
         if (_heartbeat_thread.start() != 0)
         {
-            throw(runtime_error(string("KeymasterServer: unable to start the heartbeat thread")));
+            cout << "Heartbeat thread did not start" << endl;
+
+            throw(runtime_error(
+                      string("KeymasterServer: unable to start the heartbeat thread")));
         }
     }
     // Now that we're running, publish everything, so that any clients
@@ -321,7 +332,8 @@ void KeymasterServer::KmImpl::terminate()
 void KeymasterServer::KmImpl::setup_urls()
 {
     vector<string>::const_iterator cvi;
-    vector<string> urls = _root_node.front()["Keymaster"]["URLS"]["Initial"].as<vector<string> >();
+    vector<string> urls =
+        _root_node.front()["Keymaster"]["URLS"]["Initial"].as<vector<string> >();
     // TODO: make key optional
     _clone_interval = _root_node.front()["Keymaster"]["clone_interval"].as<int>();
 
@@ -380,7 +392,8 @@ bool KeymasterServer::KmImpl::using_tcp()
     bool rval = false;
     vector<string>::const_iterator cvi;
 
-    if (find_if(_state_service_urls.begin(), _state_service_urls.end(), substring_p("tcp"))
+    if (find_if(_state_service_urls.begin(),
+                _state_service_urls.end(), substring_p("tcp"))
         != _state_service_urls.end())
     {
         rval = true;
@@ -528,7 +541,8 @@ void KeymasterServer::KmImpl::state_manager_task()
     {
         // bind to all state server URLs
         bind_server(state_sock, _state_service_urls);
-        put_yaml_val(_root_node.front(), "KeymasterServer.URLS", _state_service_urls, true);
+        put_yaml_val(
+            _root_node.front(), "KeymasterServer.URLS", _state_service_urls, true);
         publish("KeymasterServer.URLS");
     }
     catch (zmq::error_t &e)
@@ -544,16 +558,16 @@ void KeymasterServer::KmImpl::state_manager_task()
     }
 
 
-    yaml_result rs = put_yaml_val(_root_node.front(),
-                                  "Keymaster.URLS.AsConfigured.State", _state_service_urls, true);
-    yaml_result rp = put_yaml_val(_root_node.front(),
-                                  "Keymaster.URLS.AsConfigured.Pub", _publish_service_urls, true);
+    yaml_result rs = put_yaml_val(
+        _root_node.front(),
+        "Keymaster.URLS.AsConfigured.State", _state_service_urls, true);
+    yaml_result rp = put_yaml_val(
+        _root_node.front(),
+        "Keymaster.URLS.AsConfigured.Pub", _publish_service_urls, true);
     ostringstream state;
     ostringstream pub;
     mxutils::output_vector(_state_service_urls, state);
     mxutils::output_vector(_publish_service_urls, pub);
-    cout << "Keymaster.URLS.AsConfigured.State:" << state.str() << endl;
-    cout << "Keymaster.URLS.AsConfigured.Pub:" << pub.str() << endl;
     publish("Keymaster.URLS.AsConfigured.State", true);
     publish("Keymaster.URLS.AsConfigured.Pub", true);
 
@@ -763,17 +777,15 @@ void KeymasterServer::KmImpl::heartbeat_task()
 {
     zmq::context_t &ctx = ZMQContext::Instance()->get_context();
     zmq::socket_t sock(ctx, ZMQ_REQ);
-    string url, response;
+    string response;
     string cmd("PUT"), key("Keymaster.heartbeat");
     Time::Time_t one_sec(1000000000L);
     Time::Time_t wake_time = Time::getUTC() + one_sec;
 
-    auto it = find_if(_state_service_urls.begin(), _state_service_urls.end(),
-                      [](string i){return i.find("inproc") != string::npos;});
+    auto url = get_most_local(_state_service_urls);
 
-    if (it != _state_service_urls.end())
+    if (not url.empty())
     {
-        url = *it;
         sock.connect(url.c_str());
 
         while (_running)
@@ -783,11 +795,23 @@ void KeymasterServer::KmImpl::heartbeat_task()
             wake_time += one_sec;
             string val = to_string(t);
             string flag("create");
-            z_send(sock, cmd, ZMQ_SNDMORE, KM_TIMEOUT);
-            z_send(sock, key, ZMQ_SNDMORE, KM_TIMEOUT);
-            z_send(sock, val, ZMQ_SNDMORE, KM_TIMEOUT);
-            z_send(sock, flag, 0, KM_TIMEOUT);
-            z_recv(sock, response, KM_TIMEOUT);
+
+            try
+            {
+                z_send(sock, cmd, ZMQ_SNDMORE, KM_TIMEOUT);
+                z_send(sock, key, ZMQ_SNDMORE, KM_TIMEOUT);
+                z_send(sock, val, ZMQ_SNDMORE, KM_TIMEOUT);
+                z_send(sock, flag, 0, KM_TIMEOUT);
+                z_recv(sock, response, KM_TIMEOUT);
+            }
+            catch (MatrixException &e)
+            {
+                cerr << Time::isoDateTime(Time::getUTC())
+                     << " -- Keymaster Server Heartbeat task: "
+                     << "url=" << url << endl
+                     << "cmd=" << cmd << " key=" << key << " val=" << val
+                     << " flag=" << flag << endl << e.what() << endl;
+            }
         }
     }
 }
@@ -1064,12 +1088,14 @@ yaml_result Keymaster::_call_keymaster(string cmd, string key, string val, strin
     int pre_cancel_state;
     ThreadLock<Mutex> lck(_shared_lock);
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &pre_cancel_state);
-    ResourceLock canceler([pre_cancel_state]() { pthread_setcancelstate(pre_cancel_state, nullptr); });
+    ResourceLock canceler([pre_cancel_state]()
+                          { pthread_setcancelstate(pre_cancel_state, nullptr); });
     ostringstream msg;
 
     try
     {
-        msg << "Keymaster: Failed to " << cmd << " key '" << key;
+        msg << "Keymaster: Failed to " << cmd << " key '"
+            << key << " from Keymaster at " << _km_url << " ";
 
         lck.lock();
         shared_ptr<zmq::socket_t> km = _keymaster_socket();
@@ -1449,10 +1475,6 @@ void Keymaster::_run()
             try
             {
                 _km_pub_urls = get_as<vector<string> >("Keymaster.URLS.AsConfigured.Pub");
-                ostringstream pubs;
-                mxutils::output_vector(_km_pub_urls, pubs);
-                cout << "Keymaster.URLS.AsConfigured.Pub:" << pubs.str() << endl;
-                break;
             }
             catch (KeymasterException &e)
             {
