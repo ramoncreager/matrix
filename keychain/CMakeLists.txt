@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 include_directories( "." "../src" "${THIRDPARTYDIR}/include")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -std=c++11 -ggdb")
 
 set(SOURCE_FILES
 cmdparam.cc
@@ -11,6 +11,8 @@ main.cc
 )
 
 add_executable(keychain ${SOURCE_FILES})
-target_link_libraries (keychain LINK_PUBLIC matrix
--L${THIRDPARTYDIR}/lib -L${THIRDPARTYDIR}/lib64
+
+target_link_libraries (keychain
+LINK_PUBLIC -L/export/home/ajax/scratch/rcreager/rc/matrix/_install/lib
+-L${THIRDPARTYDIR}/lib  -L${THIRDPARTYDIR}/lib64
 yaml-cpp zmq readline rt boost_regex cfitsio)

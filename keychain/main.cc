@@ -409,12 +409,19 @@ void change_level(string level)
 int main(int argc, char *argv[])
 
 {
-    if (!init(argc, argv))
+    try
     {
-        return -1;
-    }
+        if (!init(argc, argv))
+        {
+            return -1;
+        }
 
-    run();
+        run();
+    }
+    catch (zmq::error_t &e)
+    {
+        cout << e.what() << endl;
+    }
 
     return 0;
 
@@ -494,6 +501,10 @@ void run()
 
         free(line);
     }
+
+    // preempt a 'context terminated' zmq error by terminating the
+    // Keymaster client here.
+    keymaster.reset();
 }
 
 /**
@@ -540,11 +551,6 @@ bool init(int argc, char *argv[])
         }
 
         keymaster.reset(new Keymaster(url));
-        vector<string> km_pub_urls = keymaster->get_as<vector<string> >("Keymaster.URLS.AsConfigured.Pub");
-
-        output_vector(km_pub_urls, cout);
-        cout << endl;
-
         keymaster->subscribe("Root", &km_cb);
         current_node = keymaster->get("Root");
 
@@ -764,7 +770,9 @@ void read(CmdParam &p)
             cout << reply << endl;
             return;
         }
+
         yaml_result r = get_yaml_node(current_node, p[0]);
+
         if (r.result)
         {
             n = r.node;
