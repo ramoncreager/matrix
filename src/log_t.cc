@@ -1,5 +1,5 @@
 /*******************************************************************
- *  log_t.cc - Logger class for VEGAS
+ *  log_t.cc - Logger class for Matrix framework
  *
  *  Copyright (C) 2016 Associated Universities, Inc. Washington DC, USA.
  *
@@ -39,80 +39,113 @@ using namespace std;
 
 namespace matrix
 {
-    int log_t::_log_level = INFO_LEVEL;
-    std::list<std::shared_ptr<log_t::Backend>> log_t::backends;
 
-    log_t::ostreamBackend::ostreamBackend(std::ostream &s)
+    Levels log_t::_log_level{Levels::INFO_LEVEL};
+    list<std::shared_ptr<log_t::Backend>> log_t::backends;
+
+    map<Levels, string> log_t::_level_name
+    {
+        {Levels::PRINT_LEVEL, "PRINT"},
+        {Levels::FATAL_LEVEL, "FATAL"},
+        {Levels::ERROR_LEVEL, "ERROR"},
+        {Levels::WARNING_LEVEL, "WARNING"},
+        {Levels::INFO_LEVEL, "INFO"},
+        {Levels::DEBUG_LEVEL, "DEBUG"}
+    };
+
+    ostreamBackend::ostreamBackend(std::ostream &s)
         : os(s)
     {
-        _level_name[DEBUG_LEVEL]   = "DEBUG";
-        _level_name[INFO_LEVEL]    = "INFO";
-        _level_name[WARNING_LEVEL] = "WARNING";
-        _level_name[ERROR_LEVEL]   = "ERROR";
-        _level_name[FATAL_LEVEL]   = "FATAL";
-
     }
 
-    void log_t::ostreamBackend::output(log_t::Message &m)
+    void ostreamBackend::output(LogMessage &m)
     {
         stringstream s;
 
-        s << _level_name[m.msg_level] << ":" << m.module << "--"
-          << Time::isoDateTime(m.msg_time) << "--" << m.msg;
+        if (m.msg_level == Levels::PRINT_LEVEL)
+        {
+            s << m.msg();
+        }
+        else
+        {
+            s << log_t::level_name(m.msg_level) << ":" << m.module << "--"
+              << Time::isoDateTime(m.msg_time) << "--" << m.msg();
+        }
 
         os << s.str() << endl;
     }
 
-    log_t::ostreamBackendColor::ostreamBackendColor(std::ostream &s)
+    ostreamBackendColor::ostreamBackendColor(std::ostream &s)
         : ostreamBackend(s)
     {
-       _level_color[DEBUG_LEVEL]   = LIGHT_CYAN;
-       _level_color[INFO_LEVEL]    = LIGHT_GREEN;
-       _level_color[WARNING_LEVEL] = MAGENTA;
-       _level_color[ERROR_LEVEL]   = LIGHT_RED;
-       _level_color[FATAL_LEVEL]   = RED;
+        _level_color[Levels::DEBUG_LEVEL]   = LIGHT_CYAN;
+        _level_color[Levels::INFO_LEVEL]    = LIGHT_GREEN;
+        _level_color[Levels::WARNING_LEVEL] = MAGENTA;
+        _level_color[Levels::ERROR_LEVEL]   = LIGHT_RED;
+        _level_color[Levels::FATAL_LEVEL]   = RED;
     }
 
-    void log_t::ostreamBackendColor::output(log_t::Message &m)
+    void ostreamBackendColor::output(LogMessage &m)
     {
         stringstream s;
 
-        s << _level_color[m.msg_level] << _level_name[m.msg_level]
-          << ENDCLR << ":" << YELLOW + m.module + ENDCLR << "--"
-          << LIGHT_YELLOW + Time::isoDateTime(m.msg_time) + ENDCLR << "--"
-          << m.msg;
+
+        if (m.msg_level == Levels::PRINT_LEVEL)
+        {
+            s << m.msg();
+        }
+        else
+        {
+            s << _level_color[m.msg_level] << log_t::level_name(m.msg_level)
+              << ENDCLR << ":" << YELLOW + m.module + ENDCLR << "--"
+              << LIGHT_YELLOW + Time::isoDateTime(m.msg_time) + ENDCLR << "--"
+              << m.msg();
+        }
 
         os << s.str() << endl;
     }
 
-    log_t::log_t(std::string mod)
+    log_t::log_t(string mod)
     {
         _module = mod;
-        _pid = getpid();
     }
 
-    void log_t::do_rest(log_t::Message &m)
+    void log_t::do_rest(LogMessage &m)
     {
-        m.msg = m.s.str();
-
         for (auto b: backends)
         {
             b->output(m);
         }
     }
 
-    void log_t::set_log_level(int l)
+    void log_t::set_log_level(Levels l)
     {
         _log_level = l;
     }
 
-    void log_t::add_backend(std::shared_ptr<Backend> be)
+    void log_t::add_backend(shared_ptr<log_t::Backend> be)
     {
         backends.push_front(be);
     }
 
-    void log_t::clear_backends()
+    string log_t::level_name(Levels l)
     {
-        backends.clear();
+        return _level_name[l];
+    }
+
+    void log_t::set_default_backend()
+    {
+        std::shared_ptr<log_t::Backend> backend;
+
+        if (isatty(fileno(stdout)))
+        {
+            backend.reset(new ostreamBackendColor(cout));
+        }
+        else
+        {
+            backend.reset(new ostreamBackend(cout));
+        }
+
+        log_t::add_backend(backend);
     }
 }
