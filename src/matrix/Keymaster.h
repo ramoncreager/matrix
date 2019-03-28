@@ -58,13 +58,9 @@ namespace matrix
     public:
 
         KeymasterServer(std::string configfile);
-
         KeymasterServer(YAML::Node n);
-
         ~KeymasterServer();
-
         void run();
-
         void terminate();
 
     private:
@@ -107,6 +103,42 @@ namespace matrix
 
     private:
         virtual void _call(std::string key, YAML::Node val) = 0;
+    };
+/**
+ * \class KeymasterRPCCB
+ *
+ * Used to set up rpc calls with Keymaster's rpc function. The
+ * function will register this callback to the <key>.response
+ * key. When this key is written it will receive the results via this
+ * callback, which which will receive the results from the "call" and
+ * place it into a queue, which can be read by the caller via the
+ * 'rval' function of this callback structure.
+ *
+ */
+
+
+    struct KeymasterRPCCB : public matrix::KeymasterCallbackBase
+    {
+        mxutils::yaml_result rval(Time::Time_t timeout)
+        {
+            mxutils::yaml_result n;
+
+            if (pipe.timed_get(n, timeout))
+            {
+                return n;
+            }
+
+            return mxutils::yaml_result(false);
+        }
+
+    private:
+        matrix::tsemfifo<mxutils::yaml_result> pipe;
+
+        void _call(std::string key, YAML::Node val)
+        {
+            mxutils::yaml_result r(true, val, key);
+            pipe.put(r);
+        }
     };
 
 /**
@@ -210,23 +242,20 @@ namespace matrix
     public:
 
         Keymaster(std::string keymaster_url, bool shared = false);
-
         ~Keymaster();
 
         YAML::Node get(std::string key);
-
         bool get(std::string key, ::mxutils::yaml_result &yr);
-
         bool put(std::string key, YAML::Node n, bool create = false);
-
         void put_nb(std::string key, std::string val, bool create = true);
-
         bool del(std::string key);
-
         bool subscribe(std::string key, matrix::KeymasterCallbackBase *f);
-
         bool unsubscribe(std::string key);
 
+        /// 'rpc' assumes a key 'key' which has subkeys 'request' and
+        /// 'reply', and that a service is listening to <key>.request.
+        mxutils::yaml_result rpc(std::string key,
+                YAML::Node params, Time::Time_t to=10000);
         template<typename T>
         T get_as(std::string key);
 
@@ -238,20 +267,15 @@ namespace matrix
     private:
 
         void _subscriber_task();
-
         void _put_task();
-
         void _run();
-
         void _run_put();
-
         void _handle_keymaster_server_exception();
 
         ::mxutils::yaml_result _call_keymaster(std::string cmd, std::string key,
                                              std::string val = "", std::string flag = "");
 
         std::shared_ptr<zmq::socket_t> _keymaster_socket();
-
         std::shared_ptr<zmq::socket_t> _km_;
         ::mxutils::yaml_result _r;
         std::string _km_url;

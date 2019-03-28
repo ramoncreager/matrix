@@ -66,6 +66,7 @@ void read(CmdParam &);
 void write(CmdParam &);
 void new_node(CmdParam &);
 void del_node(CmdParam &);
+void rpc(CmdParam &);
 void help(CmdParam &);
 
 bool init(int argc, char *argv[]);
@@ -567,6 +568,7 @@ bool init(int argc, char *argv[])
         add_cmd("new", new_node);
         add_cmd("del", del_node);
         add_cmd("rm", del_node);
+        add_cmd("rpc", rpc);
         add_cmd("help", help);
     }
     catch (KeymasterException e)
@@ -799,9 +801,7 @@ void read(CmdParam &p)
         case YAML::NodeType::Sequence:
             cout << space << "type: NodeType::Sequence" << endl;
             str_seq = n.as<vector<string> >();
-            cout << space << "value: ";
-            output_vector(str_seq, cout);
-            cout << endl;
+            cout << space << "value: " << str_seq << endl;
             break;
 
         case YAML::NodeType::Scalar:
@@ -975,6 +975,68 @@ void del_node(CmdParam &p)
     {
         cout << "Error deleting key " << key << ": " << yr.err << endl;
     }
+}
+
+/**
+ * Reads the current or specified node (relative to current), printing
+ * out the node type and values of the node and any subordinate nodes.
+ *
+ * @param p: If it contains a parameter this is assumed to be a key to a
+ * node to be read. Otherwise reads the current node.
+ *
+ */
+
+void rpc(CmdParam &p)
+{
+    static string help = "rpc <key, params> [time_out]\n"
+        "\tMakes an 'rpc' call to a server subscribed to 'key'.\n"
+        "\tReturns the return value.\n"
+        "\t'params' should be a legal representation of a YAML::Node\n"
+        "\t'time_out' is a time-out, in milliseconds. The default is 1000.\n";
+
+    if (print_help(p, help))
+    {
+        return;
+    }
+
+    ThreadLock<Mutex> l(node_mtx);
+    l.lock();
+    yaml_result yr;
+    string key, val;
+    int time_out = 10000;
+    YAML::Node n;
+    YAML::Node new_current_node = YAML::Clone(current_node);
+
+    if (p.count() == 2) // key and val, current_node[key] = val
+    {
+        key = p[0];
+        val = p[1];
+    }
+    else if (p.count() == 3)
+    {
+        key = p[0];
+        val = p[1];
+        time_out = mxutils::convert<int>(p[2]);
+    }
+    else
+    {
+        cout << help << endl;
+        return;
+    }
+
+    string fullpath;
+    fullpath = key_from(current_path) + "." + key;
+
+    // handle the full path specified case
+
+    if (fullpath[0] == '.')
+    {
+        fullpath = fullpath.substr(1,string::npos);
+    }
+
+    auto yval = YAML::Load(val);
+    auto rval = keymaster->rpc(fullpath, yval, time_out);
+    cout << rval << endl;
 }
 
 /**

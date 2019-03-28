@@ -1431,10 +1431,51 @@ bool Keymaster::unsubscribe(string key)
     zmq::socket_t pipe(ZMQContext::Instance()->get_context(), ZMQ_REQ);
     pipe.connect(_pipe_url.c_str());
     z_send(pipe, UNSUBSCRIBE, ZMQ_SNDMORE);
-    z_send(pipe, key, 0);
+    z_send(pipe, key, 0, 1000);
     int rval;
-    z_recv(pipe, rval);
+    z_recv(pipe, rval, 1000);
     return rval ? true : false;
+}
+
+/**
+ * Makes an RPC call indirectly ('Linda' model) via the Keymaster, by
+ * writing to 'key', which the service is subscribed to. The service
+ * responds by writing back to this key (client writes to
+ * <key>.request, and server to <key>.reply)
+ *
+ * @param key: The RPC service key, a period-separated string
+ * @param params: A YAML:Node containing the parameters needed by the
+ * service
+ * @param to: Time out, in milliseconds.
+ *
+ * @return A yaml_result containing the success flag, key, and
+ * YAML::Node with the results.
+ *
+ */
+
+
+yaml_result Keymaster::rpc(string key, YAML::Node params, Time::Time_t to_ms)
+{
+    auto send_key = key + ".request";
+    auto reply_key = key + ".reply";
+    yaml_result reply(false);
+    Time::Time_t to_ns = to_ms * 1000000UL;
+    KeymasterRPCCB cb;
+
+    if (subscribe(reply_key, &cb))
+    {
+        if (put(send_key, params))
+        {
+            reply = cb.rval(to_ns);
+        }
+
+        if (not unsubscribe(reply_key))
+        {
+            cerr << "Unable to unsubscribe to " << reply_key << endl;
+        }
+    }
+
+    return reply;
 }
 
 /**
