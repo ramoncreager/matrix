@@ -282,34 +282,31 @@ string ToHex(const string &s, bool upper_case, size_t max_len)
 
     string get_most_local(vector<string> urls)
     {
-        string inproc{"inproc"};
-        string ipc{"ipc"};
-        string tcp{"tcp"};
-
         auto predicate =
-            [](auto transport)
+            [](string transport)
             {
-                return [transport](auto x)
+                return [transport](string x)
                        {
+                           transform(x.begin(), x.end(), x.begin(), ::tolower);
                            return x.find(transport) != string::npos;
                        };
             };
 
-        auto inproc_it = find_if(urls.begin(), urls.end(), predicate(inproc));
+        auto inproc_it = find_if(urls.begin(), urls.end(), predicate("inproc"));
 
         if (inproc_it != urls.end())
         {
             return *inproc_it;
         }
 
-        auto ipc_iter = find_if(urls.begin(), urls.end(), predicate(ipc));
+        auto ipc_iter = find_if(urls.begin(), urls.end(), predicate("ipc"));
 
         if (ipc_iter != urls.end())
         {
             return *ipc_iter;
         }
 
-        auto tcp_iter = find_if(urls.begin(), urls.end(), predicate(tcp));
+        auto tcp_iter = find_if(urls.begin(), urls.end(), predicate("tcp"));
 
         if (tcp_iter != urls.end())
         {
