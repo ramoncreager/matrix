@@ -1,8 +1,10 @@
 /*******************************************************************
- *  RTDataInterface.h - A DataInterface transport for real time, using
- *  semaphore queues.
+ *  RTTransportServer.h - Real Time INPROC transport server. Transfers
+ *  data from server to client via a tsemfifo. This can be made to
+ *  work very fast and satisfy real-time requirements, if necessary.
  *
- *  Copyright (C) 2015 Associated Universities, Inc. Washington DC, USA.
+ *  Copyright (C) 2015, 2019 Associated Universities, Inc. Washington
+ *  DC, USA.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,23 +28,26 @@
  *
  *******************************************************************/
 
-#if !defined(_RTDATAINTERFACE_H_)
-#define _RTDATAINTERFACE_H_
+#if !defined(_RTTRANSPORT_SERVER_T_)
+#define _RTTRANSPORT_SERVER_T_
 
-#include "matrix/DataInterface.h"
+#include "matrix/TransportServer.h"
 #include <string>
+#include <memory>
 
 namespace matrix
 {
-/**
- * \class RTTransportServer
- *
- * Provides a publishing service for any type T over a tsemfifo<T>. It
- * keeps a list of subscribers, and publishes the data to their
- * tsemfifo<T>s. This class is generally not called or used directly,
- * instead being set up behind the scenes by a DataSource<T>.
- *
- */
+    class DataCallbackBase;
+
+    /**
+     * \class RTTransportServer
+     *
+     * Provides a publishing service for any type T over a tsemfifo<T>. It
+     * keeps a list of subscribers, and publishes the data to their
+     * tsemfifo<T>s. This class is generally not called or used directly,
+     * instead being set up behind the scenes by a DataSource<T>.
+     *
+     */
 
     class RTTransportServer : public matrix::TransportServer
     {
@@ -67,37 +72,6 @@ namespace matrix
         friend class matrix::TransportServer;
         static matrix::TransportServer *factory(std::string, std::string);
         static std::map<std::string, RTTransportServer *> _rttransports;
-    };
-
-/**
- * \class RTTransportClient
- *
- * Subscriber for a tsemfifo<T> based transport. Provides a means for
- * a DataSink<T> to interface with a publisher over the rtinproc
- * transport. Its main function is to take the client's tsemfifo<T>
- * and register it with the appropriate `RTTransportServer`.
- *
- */
-
-    class RTTransportClient : public matrix::TransportClient
-    {
-    public:
-
-        RTTransportClient(std::string urn);
-        virtual ~RTTransportClient();
-
-    private:
-
-        bool _connect(std::string urn = "");
-        bool _disconnect();
-        bool _subscribe(std::string key, DataCallbackBase *cb);
-        bool _unsubscribe(std::string key, DataCallbackBase *cb);
-
-        std::string _key;
-        matrix::DataCallbackBase *_cb;
-
-        friend class matrix::TransportClient;
-        static matrix::TransportClient *factory(std::string);
     };
 
 }

@@ -24,7 +24,8 @@ set(INCLUDE_FILES
     matrix/NANutils.h
     matrix/netUtils.h
     matrix/ResourceLock.h
-    matrix/RTDataInterface.h
+    matrix/RTTransportClient.h
+    matrix/RTTransportServer.h
     matrix/Semaphore.h
     matrix/SharedObjectRegistry.h
     matrix/string_format.h
@@ -38,7 +39,8 @@ set(INCLUDE_FILES
     matrix/yaml_util.h
     matrix/zmq_util.h
     matrix/ZMQContext.h
-    matrix/ZMQDataInterface.h)
+    matrix/ZMQTransportClient.h
+    matrix/ZMQTransportServer.h)
 
 
 set(SOURCE_FILES
@@ -54,7 +56,8 @@ set(SOURCE_FILES
     Mutex.cc
     NANutils.cc
     netUtils.cc
-    RTDataInterface.cc
+    RTTransportClient.cc
+    RTTransportServer.cc
     Semaphore.cc
     SharedObjectRegistry.cc
     string_format.cc
@@ -66,7 +69,8 @@ set(SOURCE_FILES
     yaml_util.cc
     zmq_util.cc
     ZMQContext.cc
-    ZMQDataInterface.cc
+    ZMQTransportClient.cc
+    ZMQTransportServer.cc
 )
 
 add_library(matrix ${SOURCE_FILES})

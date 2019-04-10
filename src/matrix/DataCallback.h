@@ -120,31 +120,5 @@ namespace matrix
         ActionMethod _faction;
     };
 
-    /**
-     * \class GenericBufferHandler
-     *
-     * Base class to a callback functor enables actions to be defined by a
-     * user of the GenericDataConsumer component, or other application.
-     *
-     */
-
-    struct GenericBufferHandler
-    {
-        void operator()(YAML::Node dd, matrix::GenericBuffer &buf)
-        {
-            _call(dd, buf);
-        }
-
-        void exec(YAML::Node dd, matrix::GenericBuffer &buf)
-        {
-            _call(dd, buf);
-        }
-
-    private:
-        virtual void _call(YAML::Node, matrix::GenericBuffer &)
-        {
-        }
-    };
-
 }
 #endif
