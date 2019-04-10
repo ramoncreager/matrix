@@ -6,11 +6,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Wcomment -ggdb
 set(INCLUDE_FILES
     matrix/Architect.h
     matrix/Component.h
+    matrix/DataCallback.h
     matrix/DataInterface.h
     matrix/DataSink.h
     matrix/DataSource.h
     matrix/FiniteStateMachine.h
     matrix/fixed_buffer.h
+    matrix/GenericBuffer.h
     matrix/GenericDataConsumer.h
     matrix/GnuradioDataSource.h
     matrix/Keymaster.h
@@ -31,6 +33,7 @@ set(INCLUDE_FILES
     matrix/Thread.h
     matrix/ThreadLock.h
     matrix/Time.h
+    matrix/TransportServer.h
     matrix/tsemfifo.h
     matrix/yaml_util.h
     matrix/zmq_util.h
@@ -41,8 +44,8 @@ set(INCLUDE_FILES
 set(SOURCE_FILES
     Architect.cc
     Component.cc
-    DataInterface.cc
     DataSink.cc
+    GenericBuffer.cc
     GenericDataConsumer.cc
     Keymaster.cc
     log_t.cc
@@ -54,10 +57,12 @@ set(SOURCE_FILES
     RTDataInterface.cc
     Semaphore.cc
     SharedObjectRegistry.cc
+    string_format.cc
     TestDataGenerator.cc
     Thread.cc
     Time.cc
-    string_format.cc
+    TransportClient.cc
+    TransportServer.cc
     yaml_util.cc
     zmq_util.cc
     ZMQContext.cc
