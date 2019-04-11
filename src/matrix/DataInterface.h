@@ -44,11 +44,11 @@
 #ifndef DataInterface_h
 #define DataInterface_h
 
-#include "GenericBuffer.h"
-#include "DataCallback.h"
-#include "TransportServer.h"
-#include "TransportClient.h"
-#include "DataSource.h"
-#include "DataSink.h"
+#include "matrix/GenericBuffer.h"
+#include "matrix/DataCallback.h"
+#include "matrix/TransportServer.h"
+#include "matrix/TransportClient.h"
+#include "matrix/DataSource.h"
+#include "matrix/DataSink.h"
 
 #endif
