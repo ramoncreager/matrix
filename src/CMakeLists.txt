@@ -35,6 +35,7 @@ set(INCLUDE_FILES
     matrix/ThreadLock.h
     matrix/Time.h
     matrix/TransportServer.h
+    matrix/TransportClient.h
     matrix/tsemfifo.h
     matrix/yaml_util.h
     matrix/zmq_util.h
