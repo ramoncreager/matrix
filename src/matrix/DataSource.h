@@ -112,7 +112,8 @@ namespace matrix
  */
 
     template<typename T>
-    DataSource<T>::DataSource(std::string km_urn, std::string component_name, std::string data_name)
+    DataSource<T>::DataSource(std::string km_urn,
+            std::string component_name, std::string data_name)
             :
             _km_urn(km_urn),
             _component_name(component_name),
@@ -126,7 +127,8 @@ namespace matrix
                                                  + component_name
                                                  + ".Sources."
                                                  + data_name);
-        _ts = matrix::TransportServer::get_transport(km_urn, _component_name, _transport_name);
+        _ts = matrix::TransportServer::get_transport(km_urn,
+                _component_name, _transport_name);
     }
 
     template<typename T>

@@ -33,6 +33,7 @@
 #include "matrix/DataInterface.h"
 
 #include <sstream>
+#include <msgpack.hpp>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcomment"
@@ -160,7 +161,8 @@ namespace matrix
             if (it == urls.end()) // not found!
             {
                 throw(matrix::TransportClient::CreationError(
-                          "Transport " + _transport + " not configured by " + component + "." + data_name));
+                          "Transport " + _transport + " not configured by "
+                          + component + "." + data_name));
             }
 
             return *it;
@@ -207,13 +209,15 @@ namespace matrix
             if (urls.size() > 1)
             {
                 throw(matrix::TransportClient::CreationError(
-                          "Multiple transports with none specified for" + component + "." + data_name));
+                          "Multiple transports with none specified for"
+                          + component + "." + data_name));
             }
 
             if (urls.empty())
             {
                 throw(matrix::TransportClient::CreationError(
-                          "No configured transports found for " + component + "." + data_name));
+                          "No configured transports found for "
+                          + component + "." + data_name));
             }
 
             return urls[0];
@@ -353,7 +357,8 @@ namespace matrix
             Time::Time_t time_to_quit = Time::getUTC() + ((Time::Time_t)usecs) * 1000L;
             l.lock();
 
-            while (!std::any_of(_queues.begin(), _queues.end(), [](DataSinkBase *i) {return i->items() > 0;}))
+            while (!std::any_of(_queues.begin(), _queues.end(),
+                    [](DataSinkBase *i) {return i->items() > 0;}))
             {
                 _item_placed.wait_locked_with_timeout(usecs);
 
@@ -383,7 +388,8 @@ namespace matrix
             Time::Time_t time_to_quit = Time::getUTC() + ((Time::Time_t)usecs) * 1000L;
             l.lock();
 
-            while (!std::all_of(_queues.begin(), _queues.end(), [](DataSinkBase *i) {return i->items() > 0;}))
+            while (!std::all_of(_queues.begin(), _queues.end(),
+                    [](DataSinkBase *i) {return i->items() > 0;}))
             {
                 _item_placed.wait_locked_with_timeout(usecs);
 
@@ -518,7 +524,8 @@ namespace matrix
      */
 
     template <>
-    inline int _data_handler<std::string>(void *data, size_t sze, matrix::tsemfifo<std::string> &ringbuf, bool blocking)
+    inline int _data_handler<std::string>(void *data, size_t sze,
+            matrix::tsemfifo<std::string> &ringbuf, bool blocking)
     {
         std::string val(sze, 0);
         std::memmove((char *)val.data(), data, sze);
@@ -557,7 +564,7 @@ namespace matrix
 
     template <>
     inline int _data_handler<matrix::GenericBuffer>(void *data, size_t sze,
-                                                    matrix::tsemfifo<matrix::GenericBuffer> &ringbuf, bool blocking)
+            matrix::tsemfifo<matrix::GenericBuffer> &ringbuf, bool blocking)
     {
         matrix::GenericBuffer buf;
 
@@ -610,7 +617,8 @@ namespace matrix
                         std::string transport = "");
         void _disconnect();
         void _data_handler(std::string key, void *data, size_t sze);
-        std::string _get_as_configured_key(std::string component_name, std::string data_name);
+        std::string _get_as_configured_key(std::string component_name,
+                std::string data_name);
 
         bool _connected;
         size_t _lost_data;
@@ -949,7 +957,8 @@ namespace matrix
   *
   */
 
-    bool reconnectDataSink(matrix::DataSinkBase *ds, matrix::Keymaster &km, matrix::KeymasterHeartbeatCB &kmhb,
+    bool reconnectDataSink(matrix::DataSinkBase *ds,
+                           matrix::Keymaster &km, matrix::KeymasterHeartbeatCB &kmhb,
                            std::string comp, std::string src, std::string transport);
 }
 
