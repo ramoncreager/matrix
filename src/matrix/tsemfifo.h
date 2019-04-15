@@ -35,10 +35,14 @@
 #include <stdio.h>
 #include <vector>
 #include <memory>
+#include <iostream>
+
 #include "matrix/TCondition.h"
 #include "matrix/Mutex.h"
 #include "matrix/ThreadLock.h"
 #include "matrix/Time.h"
+
+using namespace std;
 
 namespace matrix
 {
@@ -137,52 +141,42 @@ namespace matrix
         };
 
         tsemfifo(size_t size = FIFO_SIZE);
-
         ~tsemfifo();
 
         void release();
-
         void flush();
-
         unsigned int flush(int items);
 
-        bool put(T &obj);
-
-        bool try_put(T &obj);
-
-        bool timed_put(T &obj, Time::Time_t time_out);
-
-        unsigned int put_no_block(T &obj);
+        bool put(T const &obj);
+        bool put(T &&obj);
+        bool try_put(T const &obj);
+        bool try_put(T &&obj);
+        bool timed_put(T const &obj, Time::Time_t time_out);
+        bool timed_put(T &&obj, Time::Time_t time_out);
+        unsigned int put_no_block(T const &obj);
+        unsigned int put_no_block(T &&obj);
 
         bool get(T &obj);
-
         bool try_get(T &obj);
-
         bool timed_get(T &obj, Time::Time_t time_out);
-
         bool wait_for_empty(int milliseconds = -1);
-
         unsigned int size();
-
         unsigned int capacity();
-
         void resize(size_t size = FIFO_SIZE);
-
         void set_notifier(std::shared_ptr<fifo_notifier>);
 
     private:
 
         tsemfifo(const tsemfifo &);
-
         tsemfifo &operator=(tsemfifo const &);
 
         void _create_sem();
-
         void _close_sem();
 
         void _get(T &obj);
 
-        void _put(T &obj);
+        void _put(T const &obj);
+        void _put(T &&obj);
 
         std::vector<T> _buffer;
         unsigned int _head;
@@ -427,13 +421,14 @@ namespace matrix
  */
 
     template<class T>
-    void matrix::tsemfifo<T>::_put(T &obj)
+    void matrix::tsemfifo<T>::_put(T &&obj)
     {
+        cout << "Move _put called" << endl;
         matrix::ThreadLock<matrix::Mutex> l(_critical_section);
 
 
         l.lock();
-        _buffer[_tail] = obj;
+        _buffer[_tail] = std::move(obj);
 
         if (_tail < (_buf_len - 1))
         {
@@ -472,7 +467,14 @@ namespace matrix
  */
 
     template<class T>
-    bool matrix::tsemfifo<T>::put(T &obj)
+    bool matrix::tsemfifo<T>::put(T const &obj)
+    {
+        return put(T(obj));
+    }
+
+
+    template<class T>
+    bool matrix::tsemfifo<T>::put(T &&obj)
     {
         int r;
 
@@ -494,7 +496,7 @@ namespace matrix
             return false;
         }
 
-        _put(obj);
+        _put(std::move(obj));
         return true;
     }
 
@@ -514,7 +516,13 @@ namespace matrix
  */
 
     template<class T>
-    bool matrix::tsemfifo<T>::try_put(T &obj)
+    bool matrix::tsemfifo<T>::try_put(T const &obj)
+    {
+        return try_put(T(obj));
+    }
+
+    template<class T>
+    bool matrix::tsemfifo<T>::try_put(T &&obj)
     {
         if (sem_trywait(&_empty_sem) == -1)
         {
@@ -529,9 +537,10 @@ namespace matrix
             throw e;
         }
 
-        _put(obj);
+        _put(std::move(obj));
         return true;
     }
+
 
 /**
  * Puts a new value at the tail of the FIFO.  timed_put() will block
@@ -549,9 +558,14 @@ namespace matrix
  * elapsed.
  *
  */
+    template<class T>
+    bool matrix::tsemfifo<T>::timed_put(T const &obj, Time::Time_t time_out)
+    {
+        return timed_put(T(obj), time_out);
+    }
 
     template<class T>
-    bool matrix::tsemfifo<T>::timed_put(T &obj, Time::Time_t time_out)
+    bool matrix::tsemfifo<T>::timed_put(T &&obj, Time::Time_t time_out)
     {
         timespec ts;
 
@@ -569,7 +583,7 @@ namespace matrix
             throw e;
         }
 
-        _put(obj);
+        _put(std::move(obj));
         return true;
     }
 
@@ -582,14 +596,20 @@ namespace matrix
  */
 
     template<class T>
-    unsigned int matrix::tsemfifo<T>::put_no_block(T &obj)
+    unsigned int matrix::tsemfifo<T>::put_no_block(T const &obj)
+    {
+        return put_no_block(T(obj));
+    }
+
+    template<class T>
+    unsigned int matrix::tsemfifo<T>::put_no_block(T &&obj)
     {
         unsigned int flushed(0);
 
         // try_put() will fail and return 'false' if the fifo is full. In
         // that case, flush the oldest ojbect, and this should provide
         // enough room to put the object.
-        while (!try_put(obj))
+        while (!try_put(std::move(obj)))
         {
             flush(1);
             ++flushed;
@@ -597,7 +617,6 @@ namespace matrix
 
         return flushed;
     }
-
 /**
  * This private helper function actually does the manipulatio of the
  * FIFO to retrieve an object for get() and try_get() once these have
@@ -613,7 +632,7 @@ namespace matrix
         matrix::ThreadLock<matrix::Mutex> l(_critical_section);
 
         l.lock();
-        obj = _buffer[_head];
+        obj = std::move(_buffer[_head]);
 
         if (_head < (_buf_len - 1))
         {
