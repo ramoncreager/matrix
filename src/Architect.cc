@@ -30,11 +30,14 @@
 #include "matrix/ThreadLock.h"
 #include "matrix/Keymaster.h"
 #include "matrix/yaml_util.h"
+#include "matrix/matrix_util.h"
 #include "matrix/Time.h"
 
 using namespace std;
 using namespace Time;
 using namespace matrix;
+using namespace mxutils;
+
 
 #define dbprintf if(verbose) printf
 
@@ -114,7 +117,8 @@ namespace matrix
     {
     }
 
-    void Architect::add_component_factory(std::string name, Component::ComponentFactory func)
+    void Architect::add_component_factory(std::string name,
+            Component::ComponentFactory func)
     {
         Architect::factory_methods[name] = func;
     }
@@ -136,7 +140,8 @@ namespace matrix
             for (YAML::const_iterator md = km_mode.begin(); md != km_mode.end(); ++md)
             {
                 // for each connection listed in that mode ...
-                for (YAML::const_iterator conn = md->second.begin(); conn != md->second.end(); ++conn)
+                for (YAML::const_iterator conn = md->second.begin();
+                     conn != md->second.end(); ++conn)
                 {
                     YAML::Node n = *conn;
                     if (n.size() > 0)
@@ -166,18 +171,21 @@ namespace matrix
 
         dbprintf("Architect::_create_component_instances\n");
 
-        for (YAML::const_iterator it = km_components.begin(); it != km_components.end(); ++it)
+        for (YAML::const_iterator it = km_components.begin();
+             it != km_components.end(); ++it)
         {
             string comp_instance_name = it->first.as<string>();
             YAML::Node type = it->second["type"];
 
             if (!type)
             {
-                throw ArchitectException("No type field for component " + type.as<string>());
+                throw ArchitectException("No type field for component "
+                        + type.as<string>());
             }
             else if (factory_methods.find(type.as<string>()) == factory_methods.end())
             {
-                throw ArchitectException("No factory for component of type " + type.as<string>());
+                throw ArchitectException("No factory for component of type "
+                        + type.as<string>());
             }
             else
             {
@@ -188,9 +196,9 @@ namespace matrix
                 // subscribe to the components .state key before creating it
                 string key = root + comp_instance_name + ".state";
 
-                keymaster->subscribe(key,
-                                     new KeymasterMemberCB<Architect>(this,
-                                                                      &Architect::component_state_changed));
+                keymaster->subscribe(
+                    key, new KeymasterMemberCB<Architect>(
+                        this, &Architect::component_state_changed));
                 // Now do the actual creation
                 l.lock();
                 components[comp_instance_name].instance = shared_ptr<Component>(
@@ -279,18 +287,8 @@ namespace matrix
         if (!check_all_in_state("Standby"))
         {
             cerr << "Not all components are in Standby state!" << endl;
-            string root = "components.";
-            ThreadLock<ComponentMap> lk(components);
-            lk.lock();
-            for (auto p = components.begin(); p != components.end(); ++p)
-            {
-                if (p->second.active == true &&
-                    p->second.state != "Standby")
-                {
-                    cerr << p->first << " is in state " << p->second.state << endl;
-                }
-            }
-            lk.unlock();
+            cerr << "components" << components_not_in_state("Standby")
+                 << "are not in" << " Standby" << endl;
             return false;
         }
         current_mode = mode;
@@ -411,11 +409,11 @@ namespace matrix
             // perform other user-defined initializations in derived class
             keymaster->put(my_full_instance_name + ".state", fsm.getState(), true);
             keymaster->subscribe(my_full_instance_name + ".command",
-                                 new KeymasterMemberCB<Component>(this,
-                                                                  &Component::command_changed));
+                                 new KeymasterMemberCB<Component>(
+                                     this, &Component::command_changed));
             keymaster->subscribe(my_full_instance_name + ".configuration",
-                                 new KeymasterMemberCB<Architect>(this,
-                                                                  &Architect::system_mode_changed));
+                                 new KeymasterMemberCB<Architect>(
+                                     this, &Architect::system_mode_changed));
             keymaster->subscribe("connections",
                                  new KeymasterMemberCB<Architect>(
                                          this, &Architect::connections_changed));

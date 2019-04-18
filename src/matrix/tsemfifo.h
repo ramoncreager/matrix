@@ -35,7 +35,6 @@
 #include <stdio.h>
 #include <vector>
 #include <memory>
-#include <iostream>
 
 #include "matrix/TCondition.h"
 #include "matrix/Mutex.h"
@@ -423,9 +422,7 @@ namespace matrix
     template<class T>
     void matrix::tsemfifo<T>::_put(T &&obj)
     {
-        cout << "Move _put called" << endl;
         matrix::ThreadLock<matrix::Mutex> l(_critical_section);
-
 
         l.lock();
         _buffer[_tail] = std::move(obj);

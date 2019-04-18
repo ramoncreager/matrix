@@ -186,7 +186,8 @@ namespace matrix
 
     private:
 
-        static std::shared_ptr<TransportServer> create(std::string km_urn, std::string transport_key);
+        static std::shared_ptr<TransportServer> create(
+            std::string km_urn, std::string transport_key);
 
         typedef std::map<std::string, factory_sig> factory_map_t;
         static factory_map_t factories;
@@ -202,7 +203,8 @@ namespace matrix
         return _bind(urns);
     }
 
-    inline bool TransportServer::publish(std::string key, const void *data, size_t size_of_data)
+    inline bool TransportServer::publish(std::string key, const void *data,
+            size_t size_of_data)
     {
         return _publish(key, data, size_of_data);
     }

@@ -32,7 +32,9 @@ import string
 import random
 import inspect
 import weakref
+import Queue
 from time import sleep
+
 
 
 def gen_random_string(rand_len=10, chars=string.ascii_uppercase +
@@ -176,8 +178,11 @@ class Keymaster(object):
         print "Keymaster created."
 
     def __del__(self):
+        """Cleans up the Keymaster."""
         if self._km:
             self._km.close()
+
+        self._kill_subscriber_thread();
         print "Keymaster terminated."
 
     def _kill_subscriber_thread(self):
@@ -211,7 +216,8 @@ class Keymaster(object):
         if km.poll(5000):
             response = km.recv()
             return yaml.load(response)
-        return {'key': key, 'result': False, 'err': 'Time-out when talking to Keymaster.', 'node': {}}
+        return {'key': key, 'result': False,
+                'err': 'Time-out when talking to Keymaster.', 'node': {}}
 
     def get(self, key):
         """Fetches a yaml node at 'key' from the Keymaster"""
@@ -224,7 +230,8 @@ class Keymaster(object):
 
     def put(self, key, value, create=False):
         """Puts a value at 'key' on the Keymaster"""
-        return self._call_keymaster('PUT', key, yaml.dump(value), "create" if create else "")['result']
+        return self._call_keymaster('PUT', key, yaml.dump(value),
+                                    "create" if create else "")['result']
 
     def delete(self, key):
         """Deletes a key from the Keymaster"""
@@ -316,6 +323,32 @@ class Keymaster(object):
             self._kill_subscriber_thread()
             return (rval, msg)
         return (False, 'No subscriber thread running!')
+
+
+    def rpc(self, key, params, to=5):
+        send_key = key + ".request"
+        reply_key = key + ".reply"
+        reply = None
+        queue = Queue.Queue(2)
+
+        def rpc_cb(key, val):
+            queue.put((key, val))
+
+        if self.subscribe(reply_key, rpc_cb):
+            if self.put(send_key, params):
+                try:
+                    reply = queue.get(timeout=to)[1]
+                except Queue.Empty as e:
+                    print "Timed out waiting for reply."
+            else:
+                print "failed to send", params, "to", send_key
+
+            if not self.unsubscribe(reply_key):
+                print "Unable to unsubscribe to", reply_key
+        else:
+            print "subscription to", reply_key, "failed"
+
+        return reply
 
 
 def my_callback(key, val):

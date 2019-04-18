@@ -186,9 +186,11 @@ namespace matrix
 
     protected:
 
-        typedef std::map<std::string, matrix::Component::ComponentFactory> ComponentFactoryMap;
+        typedef std::map<std::string, matrix::Component::ComponentFactory>
+        ComponentFactoryMap;
         typedef matrix::Protected<std::map<std::string, ComponentInfo> > ComponentMap;
-        typedef matrix::Protected<std::map<std::string, std::set<std::string> > > ActiveModeComponentSet;
+        typedef matrix::Protected<std::map<std::string, std::set<std::string> > >
+        ActiveModeComponentSet;
         typedef std::pair<std::string, std::string> StateReport;
 
         /// A callback for component state changes.

@@ -43,17 +43,31 @@ class Architect(object):
         print 'Architect created'
 
     def __del__(self):
+        """Cleans up the Architect, and kills the keymaster cleanly."""
+        del(self._keymaster)
         print 'Architect terminated'
 
     def get_architect(self):
+        """Returns a snapshot of the 'architect' section of the Keymaster data
+        store.
+
+        """
         return self._keymaster.get('architect')
-        
+
     def get_components(self):
+        """Returns a snapshot of the 'components' section of the Keymaster data
+        store.
+
+        """
         return self._keymaster.get('components')
 
     def get_connections(self):
+        """Returns a snapshot of the 'connections' section of the Keymaster data
+        store.
+
+        """
         return self._keymaster.get('connections')
-        
+
     def check_all_in_state(self, state):
         """check that all component states are in the state specified.
 
@@ -64,11 +78,21 @@ class Architect(object):
         comp_states = {i: comps[i]['state'] for i in comps if comps[i]['active']}
         return (all(comp_states[x] == state for x in comp_states), comp_states)
 
-    def kget(self, key):
+
+    def get(self, key):
+        """Callthrough to Keymaster.get(key)"""
         return self._keymaster.get(key)
 
-    def kput(self, key, value, create = False):
+
+    def put(self, key, value, create = False):
+        """Callthrough to Keymaster.put(key, value)"""
         return self._keymaster.put(key, value, create)
+
+
+    def rpc(self, key, params, to=5):
+        """Callthrough to Keymaster.rpc(key, params, to)"""
+        return self._keymaster.rpc(key, params, to)
+
 
     def wait_all_in_state(self, statename, timeout):
         """wait until component states are all in the state specified.
