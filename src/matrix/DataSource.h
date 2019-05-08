@@ -33,11 +33,68 @@
 #include "matrix/DataInterface.h"
 
 #include <vector>
+#include <functional>
 #include <msgpack.hpp>
 
 namespace matrix
 {
 
+
+    /**
+     * These are overloaded publishers for types V. If the argument is
+     * a V, then treat as a POD or contiguous type, unless there is an
+     * overload that matches better. For example, if the argument is a
+     * std::vector<V>, then publish using the vector's data() member
+     * and its size * the sizeof one element. Not yet ideal.  These
+     * will be used by the DataSource class in its 'publish' member
+     * function. Other overloads may be added here.
+     *
+     * @param key: The publication key
+     * @param v: The value to publish (and the value that overloads
+     * these functions)
+     * @param t: the TransportServer pointer.
+     *
+     * @return true if publish succeeded, false otherwise.
+     *
+     */
+
+    namespace dspub
+    {
+
+        template <typename V>
+        bool publish(std::string key, V &v, std::shared_ptr<TransportServer> t)
+        {
+            return t->publish(key, &v, sizeof v);
+        }
+
+
+        template <typename V>
+        bool publish(std::string key, std::vector<V> &v, std::shared_ptr<TransportServer> t)
+        {
+            return t->publish(key, (void *)v.data(), v.size() * sizeof(V));
+        }
+
+
+        inline bool publish(std::string key, std::string &v,
+                            std::shared_ptr<TransportServer> t)
+        {
+            return t->publish(key, (void *)v.data(), v.size());
+        }
+
+
+        inline bool publish(std::string key, matrix::GenericBuffer &v,
+                            std::shared_ptr<TransportServer> t)
+        {
+            return t->publish(key, (void *)v.data(), v.size());
+        }
+
+
+        inline bool publish(std::string key, msgpack::sbuffer &v,
+                            std::shared_ptr<TransportServer> t)
+        {
+            return t->publish(key, (void *)v.data(), v.size());
+        }
+    }
 
 /**
  * \class DataSource
@@ -84,13 +141,37 @@ namespace matrix
     class DataSource
     {
     public:
-        DataSource(std::string km_urn, std::string component_name, std::string data_name);
+        DataSource(std::string km_urn, std::string component_name, std::string data_name)
+            :
+            _km_urn(km_urn),
+            _component_name(component_name),
+            _data_name(data_name),
+            _key(component_name + "." + data_name)
+        {
+            matrix::Keymaster km(km_urn);
+            // obtain the transport name associated with this data source and
+            // get a pointer to that transport
+            _transport_name = km.get_as<std::string>("components."
+                    + component_name
+                    + ".Sources."
+                    + data_name);
+            _ts = matrix::TransportServer::get_transport(km_urn,
+                    _component_name, _transport_name);
+        }
 
-        ~DataSource() throw();
+        ~DataSource() throw()
+        {
+            _ts.reset();
+            matrix::TransportServer::release_transport(_component_name, _transport_name);
+        }
 
-        bool publish(T &);
+        bool publish(T &val)
+        {
+            return dspub::publish(_key, val, _ts);
+        }
 
     private:
+
         std::string _km_urn;
         std::string _component_name;
         std::string _transport_name;
@@ -98,109 +179,6 @@ namespace matrix
         std::string _key;
         std::shared_ptr<matrix::TransportServer> _ts;
     };
-
-/**
- * Creates a DataSource, given a data name, a keymaster urn, and a
- * component name.
- *
- * @param name: The name of the data source.
- *
- * @param km_urn: The keymaster urn
- *
- * @param component_name: The name of the component.
- *
- */
-
-    template<typename T>
-    DataSource<T>::DataSource(std::string km_urn,
-            std::string component_name, std::string data_name)
-            :
-            _km_urn(km_urn),
-            _component_name(component_name),
-            _data_name(data_name),
-            _key(component_name + "." + data_name)
-    {
-        matrix::Keymaster km(km_urn);
-        // obtain the transport name associated with this data source and
-        // get a pointer to that transport
-        _transport_name = km.get_as<std::string>("components."
-                                                 + component_name
-                                                 + ".Sources."
-                                                 + data_name);
-        _ts = matrix::TransportServer::get_transport(km_urn,
-                _component_name, _transport_name);
-    }
-
-    template<typename T>
-    DataSource<T>::~DataSource() throw()
-    {
-        _ts.reset();
-        matrix::TransportServer::release_transport(_component_name, _transport_name);
-    }
-
-/**
- * Puts a value of type 'T' to the data source. 'T' must be a
- * contiguous type: a POD, or struct of PODS, or an array of such.
- *
- * @param data: The data to send.
- *
- * @return true if the put succeeds, false otherwise.
- *
- */
-
-    template<typename T>
-    bool DataSource<T>::publish(T &val)
-    {
-        return _ts->publish(_key, &val, sizeof val);
-    }
-
-/**
- * Specialization for std::string version.
- *
- * @param val: A std::string acting as a buffer.
- *
- * @return true if the put succeeds, false otherwise.
- *
- */
-
-    template<>
-    inline bool DataSource<std::string>::publish(std::string &val)
-    {
-        return _ts->publish(_key, val);
-    }
-
-/**
- * Specialization for matrix::GenericBuffer version.
- *
- * @param val: A matrix::GenericBuffer acting as a buffer, whose
- * internal buffer contains the bytes to be published.
- *
- * @return true if the put succeeds, false otherwise.
- *
- */
-
-    template<>
-    inline bool DataSource<matrix::GenericBuffer>::publish(matrix::GenericBuffer &val)
-    {
-        return _ts->publish(_key, val.data(), val.size());
-    }
-
-
-/**
- * Specialization for msgpack::sbuffer (serialization buffers)
- *
- * @param val: A msgpack::sbuffer whose serialzed
- * internal buffer contains the bytes to be published.
- *
- * @return true if the put succeeds, false otherwise.
- *
- */
-
-    template<>
-    inline bool DataSource<msgpack::sbuffer>::publish(msgpack::sbuffer &val)
-    {
-        return _ts->publish(_key, val.data(), val.size());
-    }
 
 }
 
