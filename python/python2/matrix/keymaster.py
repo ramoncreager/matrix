@@ -219,7 +219,7 @@ class Keymaster(object):
         return {'key': key, 'result': False,
                 'err': 'Time-out when talking to Keymaster.', 'node': {}}
 
-    def get(self, key):
+    def get(self, key="Root"):
         """Fetches a yaml node at 'key' from the Keymaster"""
         reply = self._call_keymaster('GET', key)
 
@@ -350,6 +350,34 @@ class Keymaster(object):
 
         return reply
 
+    def rpc_function(self, prefix, to=5):
+
+        def rpc(key, *params):
+            send_key = "%s.%s.request" % (prefix, key)
+            reply_key = "%s.%s.reply" % (prefix, key)
+            reply = None
+            qu = Queue.Queue(2)
+
+            def rpc_cb(key, val):
+                qu.put((key, val))
+
+            if self.subscribe(reply_key, rpc_cb):
+                if self.put(send_key, params):
+                    try:
+                        reply = qu.get(timeout=to)[1]
+                    except Queue.Empty as e:
+                        print("Timed out waiting for reply.")
+                else:
+                    print("failed to send", params, "to", send_key)
+
+                if not self.unsubscribe(reply_key):
+                    print("Unable to unsubscribe to", reply_key)
+            else:
+                print("subscription to", reply_key, "failed")
+
+            return reply
+
+        return rpc
 
 def my_callback(key, val):
     print key

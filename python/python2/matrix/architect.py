@@ -79,7 +79,7 @@ class Architect(object):
         return (all(comp_states[x] == state for x in comp_states), comp_states)
 
 
-    def get(self, key):
+    def get(self, key="Root"):
         """Callthrough to Keymaster.get(key)"""
         return self._keymaster.get(key)
 
@@ -89,9 +89,19 @@ class Architect(object):
         return self._keymaster.put(key, value, create)
 
 
-    def rpc(self, key, params, to=5):
+    def rpc(self, key, params=[], to=5):
         """Callthrough to Keymaster.rpc(key, params, to)"""
         return self._keymaster.rpc(key, params, to)
+
+
+    def rpc_function(self, prefix, to=5):
+        """Callthrough to Keymaster.rpc_function(prefix). This returns an rpc
+        function that can be used to access the serverl listening on
+        'prefix.'
+
+        """
+
+        return self._keymaster.rpc_function(prefix, to)
 
 
     def wait_all_in_state(self, statename, timeout):
