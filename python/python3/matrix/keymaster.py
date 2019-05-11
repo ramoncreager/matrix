@@ -60,7 +60,7 @@ class Keymaster(object):
             pub_urls = self._keymaster().get('Keymaster.URLS.AsConfigured.Pub')
             # choose the one who's transport is the same as that of our
             # keymaster's request URL. i.e., if tcp, then use the pub tcp, etc.
-            used_transport = (km_url.split(b':')[0]).decode("utf-8")
+            used_transport = km_url.split(':')[0]
             self._pub_url = \
                 [p for p in pub_urls if p.split(':')[0] == used_transport][0]
             # main thread communicates to this thread via ZMQ inproc REQ/REP.

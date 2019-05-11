@@ -29,7 +29,7 @@
 ######################################################################
 
 import zmq
-import keymaster
+from . import keymaster
 import queue
 import time
 import weakref

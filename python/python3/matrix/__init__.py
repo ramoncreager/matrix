@@ -1,8 +1,7 @@
 ######################################################################
-#  setup.py - Installs python matrix access to the local python
-#  installation.
+#  __init__.py - hivemind module exports
 #
-#  Copyright (C) 2019 Ramon Creager
+#  Copyright (C) 2019 Associated Universities, Inc. Washington DC, USA.
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -18,16 +17,23 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
+#  Correspondence concerning GBT software should be addressed as follows:
+#  GBT Operations
+#  National Radio Astronomy Observatory
+#  P. O. Box 2
+#  Green Bank, WV 24944-0002 USA
+#
 ######################################################################
 
+import logging
+from logging import NullHandler
 
-from distutils.core import setup
+from .architect import Architect
+from .keymaster import Keymaster
 
-setup(name='matrix',
-      version='1.0',
-      description='Control Matrix-based applications via Keymaster',
-      author='Ramon Creager',
-      author_email='rcreager@nrao.edu',
-      url='https://www.greenbankobservatory.org',
-      packages=['matrix']
-      )
+logging.getLogger(__name__).addHandler(NullHandler())
+
+__all__ = [
+    "Architect",
+    "Keymaster"
+]
