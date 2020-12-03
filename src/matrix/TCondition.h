@@ -144,6 +144,7 @@ namespace matrix
     protected:
 
         TCondition(TCondition &);
+        TCondition &operator=(TCondition const &rhs);
 
         T _value;
         pthread_cond_t _cond;
@@ -163,7 +164,6 @@ namespace matrix
             : matrix::Mutex(), _value(val)
     {
         pthread_cond_init(&_cond, NULL);
-
     }
 
 /*****************************************************************//**
@@ -175,7 +175,6 @@ namespace matrix
     TCondition<T>::~TCondition()
     {
         pthread_cond_destroy(&_cond);
-
     }
 
 

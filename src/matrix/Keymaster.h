@@ -272,8 +272,9 @@ namespace matrix
         void _run_put();
         void _handle_keymaster_server_exception();
 
-        ::mxutils::yaml_result _call_keymaster(std::string cmd, std::string key,
-                                             std::string val = "", std::string flag = "");
+        ::mxutils::yaml_result
+        _call_keymaster(std::string cmd, std::string key,
+                        std::string val = "", std::string flag = "");
 
         std::shared_ptr<zmq::socket_t> _keymaster_socket();
         std::shared_ptr<zmq::socket_t> _km_;

@@ -145,12 +145,12 @@ namespace matrix
     {
         if (_thread.running())
         {
-            _run = false;
+            _run.set_value(false);
             _thread.stop_without_cancel();
         }
 
         _thread_started.set_value(false);
-        _run = true;
+        _run.set_value(true);
         disconnect();
         return true;
     }

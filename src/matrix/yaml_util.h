@@ -61,6 +61,11 @@ namespace mxutils
             err = em;
         }
 
+        yaml_result(yaml_result const &rhs)
+        {
+            *this = rhs;
+        }
+
         yaml_result(YAML::Node yr)
         {
             from_yaml_node(yr);
